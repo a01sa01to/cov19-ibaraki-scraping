@@ -104,6 +104,7 @@ docx2pdf(path_prefDocx, path_pref)
 print("\nAnalyzing Pref PDF...")
 data_pref = pdf2data(path_pref)
 data_pref["管轄ID"] = 0
+data_pref["新規\n濃厚"] = data_pref["新規 \n濃厚"]
 print("\nAll Done! Length: {}".format(len(data_pref)))
 
 # ----- GET MITO ----- #
@@ -142,7 +143,6 @@ data_all["年代"] = (
     .replace("100代", "100歳以上")
 )
 data_all["患者_濃厚接触者フラグ"] = data_all["新規\n濃厚"].replace({"新規": 0, "濃厚": 1})
-data_all["患者_濃厚接触者フラグ"] = data_all["新規 \n濃厚"].replace({"新規": 0, "濃厚": 1})
 data_all["発症日"] = str2date(data_all["発症日"])
 data_all["発症日ISO"] = data_all["発症日"].apply(
     lambda d: pd.Timestamp(d, tz=None)
