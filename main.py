@@ -97,7 +97,7 @@ tag_pref = soup.find(
 link_pref = urljoin(url, tag_pref.get("href"))
 path_pref = fetch_file(link_pref)
 path_prefDocx = pathlib.Path(str(path_pref).replace(".pdf", ".docx")).resolve()
-print("\nConerting to Docx...")
+print("\nConverting to Docx...")
 parse(path_pref, path_prefDocx)
 print("\nReconverting to PDF...")
 docx2pdf(path_prefDocx, path_pref)
