@@ -1,0 +1,18 @@
+wheel
+
+# main
+pdfplumber
+pandas
+requests
+pyperclip
+bs4
+pdf2docx
+comtypes
+autopep8
+flake8
+
+# summary
+opencv-python
+pytesseract
+Image
+pyperclip
