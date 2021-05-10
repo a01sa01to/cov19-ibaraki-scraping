@@ -117,7 +117,7 @@ print(data)
 # ----- COPY TO CLIPBOARD ----- #
 s = ""
 for i in range(len(data)):
-  if i is not 2:
+  if i != 2:
     s += str(data[i]) + "\n"
 
 try:
