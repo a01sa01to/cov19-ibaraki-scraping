@@ -11,15 +11,23 @@ echo.
 echo ==============================================
 echo.
 python -m pip install --upgrade pip
-pip install --upgrade pdfplumber pandas requests pyperclip bs4 pdf2docx comtypes autopep8 flake8
+pip install --upgrade -r requirements.txt
+pip freeze > requirements.lock
 echo.
 echo All Packages Downloaded!
 echo.
 echo ==============================================
 echo.
-echo Running Python File...
+echo Running patients.py...
 echo.
-python ./main.py
+python ./patients.py
+echo.
+pause
+echo ==============================================
+echo.
+echo Running summary.py...
+echo.
+python ./summary.py
 echo.
 pause
 exit
