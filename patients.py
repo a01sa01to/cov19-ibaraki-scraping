@@ -104,7 +104,10 @@ docx2pdf(path_prefDocx, path_pref)
 print("\nAnalyzing Pref PDF...")
 data_pref = pdf2data(path_pref)
 data_pref["管轄ID"] = 0
-data_pref["新規\n濃厚"] = data_pref["新規 \n濃厚"]
+for key in data_pref:
+  print(key)
+  if '新規' in key:
+    data_pref["新規\n濃厚"] = data_pref[key]
 print("\nAll Done! Length: {}".format(len(data_pref)))
 
 # ----- GET MITO ----- #
@@ -132,8 +135,20 @@ else:
 data_all["状態"] = (
     data_all["発症日"].where(data_all["発症日"] == "症状なし").replace({"症状なし": "無症状"})
 )
-data_all["職業"] = data_all["職業"].replace(
-    {"生徒": "学生", "児童": "学生", "非公表": "", "確認中": ""})
+data_all["職業"] = data_all["職業"].replace({
+    "乳児": "未就学児",
+    "幼児": "未就学児",
+    "生徒": "学生",
+    "児童": "学生",
+    "介護職員": "介護職",
+    "介護士": "介護職",
+    "専業主婦": "主婦",
+    "派遣職員": "派遣社員",
+    "非公表": "",
+    "確認中": "",
+    "調査中": "",
+    "不明": ""
+  })
 data_all["性別"] = data_all["性別"].replace({"男子": "男性", "女子": "女性"})
 data_all["職業"] = data_all["職業"].mask(data_all["年代"] == "未就学児", "未就学児")
 data_all["年代"] = (
@@ -141,6 +156,9 @@ data_all["年代"] = (
     .replace({"未就学児": "10歳未満"})
     .str.replace("歳代", "代")
     .replace("100代", "100歳以上")
+    .replace("調査中","不明")
+    .replace("非公表","不明")
+    .replace("確認中","不明")
 )
 data_all["患者_濃厚接触者フラグ"] = data_all["新規\n濃厚"].replace({"新規": 0, "濃厚": 1})
 data_all["発症日"] = str2date(data_all["発症日"])
