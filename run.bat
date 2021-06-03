@@ -12,7 +12,6 @@ echo ==============================================
 echo.
 python -m pip install --upgrade pip
 pip install --upgrade -r requirements.txt
-pip freeze > requirements.lock
 echo.
 echo All Packages Downloaded!
 echo.
