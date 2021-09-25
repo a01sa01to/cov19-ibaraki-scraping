@@ -25,60 +25,69 @@ url = "https://www.pref.ibaraki.jp/1saigai/2019-ncov/index.html"
 
 
 def fetch_html(url, parser="html.parser"):
-  req = requests.get(url=url, headers=HEADERS)
-  req.raise_for_status()
-  soup = BeautifulSoup(req.content, parser)
-  return soup
+    req = requests.get(url=url, headers=HEADERS)
+    req.raise_for_status()
+    soup = BeautifulSoup(req.content, parser)
+    return soup
 
 
 def fetch_file(url, dir="."):
-  path = pathlib.Path(dir, pathlib.PurePath(url).name)
-  path.parent.mkdir(parents=True, exist_ok=True)
+    path = pathlib.Path(dir, pathlib.PurePath(url).name)
+    path.parent.mkdir(parents=True, exist_ok=True)
 
-  req = requests.get(url)
-  req.raise_for_status()
+    req = requests.get(url)
+    req.raise_for_status()
 
-  with path.open(mode="wb") as fileWrite:
-    fileWrite.write(req.content)
-  return path.resolve()
+    with path.open(mode="wb") as fileWrite:
+        fileWrite.write(req.content)
+    return path.resolve()
 
 
 def pdf2data(pdfFile):
-  with pdfplumber.open(pdfFile) as pdf:
-    dataStr = []
-    for page in pdf.pages[1:]:
-      try:
-        table = page.extract_table()
-        _ = pd.DataFrame(table[1:], columns=table[0])
-        if (_.columns[0] == "判明日") or (_.columns[1] == "判明日"):
-          dataStr.append(_)
-      except:
-        continue
-  data = pd.concat(dataStr)
-  data.replace(["―", "－", ""], pd.NA, inplace=True)
-  data.dropna(how="all", inplace=True)
-  return data.reset_index(drop=True)
+    with pdfplumber.open(pdfFile) as pdf:
+        dataStr = []
+        col = []
+        # for page in pdf.pages[1:]:
+        for page in pdf.pages[0:]:
+            try:
+                table = page.extract_table()
+                # print(table)
+                _ = pd.DataFrame(table[0:], columns=table[0])
+                print(_)
+                if (_.columns[0] == "判明日") or (_.columns[1] == "判明日"):
+                    dataStr.append(_[1:])
+                    col = _.columns
+                else:
+                    dataStr.append(_[0:].set_axis(col, axis=1))
+            except:
+                continue
+    # print(dataStr)
+    data = pd.concat(dataStr)
+    data.replace(["―", "－", ""], pd.NA, inplace=True)
+    data.dropna(how="all", inplace=True)
+    # print(data)
+    return data.reset_index(drop=True)
 
 
 def str2date(st):
-  data = (
-      st.str.extract("(\\d{1,2})月(\\d{1,2})日")
-      .rename(columns={0: "month", 1: "day"})
-      .fillna(0)
-      .astype(int)
-  )
-  data["year"] = NOW.year
-  _ = pd.to_datetime(data, errors="coerce")
-  data["year"] = data["year"].mask(_ > NOW, data["year"] - 1)
-  return pd.to_datetime(data, errors="coerce")
+    data = (
+        st.str.extract("(\\d{1,2})月(\\d{1,2})日")
+        .rename(columns={0: "month", 1: "day"})
+        .fillna(0)
+        .astype(int)
+    )
+    data["year"] = NOW.year
+    _ = pd.to_datetime(data, errors="coerce")
+    data["year"] = data["year"].mask(_ > NOW, data["year"] - 1)
+    return pd.to_datetime(data, errors="coerce")
 
 
 def docx2pdf(docxPath, pdfPath):
-  word = comtypes.client.CreateObject("Word.Application")
-  doc = word.Documents.Open(str(docxPath))
-  doc.SaveAs(str(pdfPath), FileFormat=17)
-  doc.Close()
-  word.Quit()
+    word = comtypes.client.CreateObject("Word.Application")
+    doc = word.Documents.Open(str(docxPath))
+    doc.SaveAs(str(pdfPath), FileFormat=17)
+    doc.Close()
+    word.Quit()
 
 
 # ----- GET DATE ----- #
@@ -89,6 +98,7 @@ publish_date = (
         strip=True).replace("発表資料", "")
 )
 print("Using Data as of {}".format(publish_date))
+
 # ----- GET PREF ----- #
 print("\n\nFetching Pref PDF...")
 tag_pref = soup.find(
@@ -96,6 +106,7 @@ tag_pref = soup.find(
 )
 link_pref = urljoin(url, tag_pref.get("href"))
 path_pref = fetch_file(link_pref)
+# path_pref = "210918_shiryoteikyo.pdf"
 path_prefDocx = pathlib.Path(str(path_pref).replace(".pdf", ".docx")).resolve()
 print("\nConverting to Docx...")
 parse(path_pref, path_prefDocx)
@@ -105,9 +116,9 @@ print("\nAnalyzing Pref PDF...")
 data_pref = pdf2data(path_pref)
 data_pref["管轄ID"] = 0
 for key in data_pref:
-  print(key)
-  if '新規' in key:
-    data_pref["新規\n濃厚"] = data_pref[key]
+    # print(key)
+    if '新規' in key:
+        data_pref["新規\n濃厚"] = data_pref[key]
 print("\nAll Done! Length: {}".format(len(data_pref)))
 
 # ----- GET MITO ----- #
@@ -116,22 +127,25 @@ tag_mito = soup.find(
     "a", class_="icon_pdf", text=re.compile("^【水戸市発表】新型コロナウイルス感染症患者の発生について")
 )
 if tag_mito is not None:
-  link_mito = urljoin(url, tag_mito.get("href"))
-  path_mito = fetch_file(link_mito)
-  print("\nAnalyzing Mito PDF...")
-  data_mito = pdf2data(path_mito)
-  data_mito["管轄ID"] = 1
-  print("\nAll Done! Length: {}".format(len(data_mito)))
+# if True:
+    link_mito = urljoin(url, tag_mito.get("href"))
+    path_mito = fetch_file(link_mito)
+    # path_mito = "210918_mito.pdf"
+    print("\nAnalyzing Mito PDF...")
+    data_mito = pdf2data(path_mito)
+    data_mito["管轄ID"] = 1
+    print("\nAll Done! Length: {}".format(len(data_mito)))
 else:
-  print("\nAll Done! Length: 0")
+    print("\nAll Done! Length: 0")
 
 
 # ----- ANALYZE ----- #
 print("\n\nGenerating Results...")
 if tag_mito is not None:
-  data_all = pd.concat([data_pref, data_mito])
+    data_all = pd.concat([data_pref, data_mito])
 else:
-  data_all = pd.concat([data_pref])
+    data_all = pd.concat([data_pref])
+# data_all = pd.concat([data_mito])
 data_all["状態"] = (
     data_all["発症日"].where(data_all["発症日"] == "症状なし").replace({"症状なし": "無症状"})
 )
@@ -148,7 +162,7 @@ data_all["職業"] = data_all["職業"].replace({
     "確認中": "",
     "調査中": "",
     "不明": ""
-  })
+})
 data_all["性別"] = data_all["性別"].replace({"男子": "男性", "女子": "女性"})
 data_all["職業"] = data_all["職業"].mask(data_all["年代"] == "未就学児", "未就学児")
 data_all["年代"] = (
@@ -156,9 +170,9 @@ data_all["年代"] = (
     .replace({"未就学児": "10歳未満"})
     .str.replace("歳代", "代")
     .replace("100代", "100歳以上")
-    .replace("調査中","不明")
-    .replace("非公表","不明")
-    .replace("確認中","不明")
+    .replace("調査中", "不明")
+    .replace("非公表", "不明")
+    .replace("確認中", "不明")
 )
 data_all["患者_濃厚接触者フラグ"] = data_all["新規\n濃厚"].replace({"新規": 0, "濃厚": 1})
 data_all["発症日"] = str2date(data_all["発症日"])
@@ -206,29 +220,32 @@ data_all = data_all.reindex(
     axis=1,
 )
 
+print("All Length: {}".format(len(data_all)))
+
 # ----- OUTPUT ----- #
 data_all.to_csv("080004_ibaraki_covid19_patients.csv", encoding="utf_8_sig")
-data_all.to_csv("080004_ibaraki_covid19_patients.tsv", sep="\t", encoding="utf_8_sig", index=False)
+data_all.to_csv("080004_ibaraki_covid19_patients.tsv",
+                sep="\t", encoding="utf_8_sig", index=False)
 
 # ----- COPY TO CLIPBOARD ----- #
 with open("080004_ibaraki_covid19_patients.tsv", "r", encoding="UTF-8") as f:
-  file = f.readlines()
+    file = f.readlines()
 
 s = ""
 for i in range(len(file)):
-  if i == 0:
-    continue
-  s += file[i]
+    if i == 0:
+        continue
+    s += file[i]
 try:
-  pyperclip.copy(s)
-  print("\nCopied to Clipboard!")
+    pyperclip.copy(s)
+    print("\nCopied to Clipboard!")
 except:
-  print("\nFailed to copy")
+    print("\nFailed to copy")
 
 # ----- REMOVE FILE ----- #
 os.remove(path_pref)
 os.remove(path_prefDocx)
 if tag_mito is not None:
-  os.remove(path_mito)
+    os.remove(path_mito)
 os.remove("080004_ibaraki_covid19_patients.csv")
 os.remove("080004_ibaraki_covid19_patients.tsv")
